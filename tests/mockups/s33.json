@@ -1,0 +1,93 @@
+{
+  "downstream": [
+    {
+      "channel_id": "1",
+      "modulation": "QAM256",
+      "frequency": "489000000",
+      "power": "3.3",
+      "snr": "39.7",
+      "corrected": "0",
+      "uncorrectables": "0"
+    },
+    {
+      "channel_id": "2",
+      "modulation": "QAM256",
+      "frequency": "495000000",
+      "power": "3.5",
+      "snr": "39.5",
+      "corrected": "0",
+      "uncorrectables": "0"
+    },
+    {
+      "channel_id": "3",
+      "modulation": "QAM256",
+      "frequency": "501000000",
+      "power": "3.6",
+      "snr": "39.4",
+      "corrected": "0",
+      "uncorrectables": "0"
+    },
+    {
+      "channel_id": "4",
+      "modulation": "QAM256",
+      "frequency": "507000000",
+      "power": "3.4",
+      "snr": "39.6",
+      "corrected": "0",
+      "uncorrectables": "0"
+    },
+    {
+      "channel_id": "5",
+      "modulation": "QAM256",
+      "frequency": "513000000",
+      "power": "3.5",
+      "snr": "39.5",
+      "corrected": "0",
+      "uncorrectables": "0"
+    },
+    {
+      "channel_id": "6",
+      "modulation": "QAM256",
+      "frequency": "519000000",
+      "power": "3.3",
+      "snr": "39.7",
+      "corrected": "0",
+      "uncorrectables": "0"
+    },
+    {
+      "channel_id": "7",
+      "modulation": "QAM256",
+      "frequency": "525000000",
+      "power": "3.4",
+      "snr": "39.6",
+      "corrected": "0",
+      "uncorrectables": "0"
+    },
+    {
+      "channel_id": "8",
+      "modulation": "QAM256",
+      "frequency": "531000000",
+      "power": "3.5",
+      "snr": "39.5",
+      "corrected": "0",
+      "uncorrectables": "0"
+    }
+  ],
+  "upstream": [
+    {
+      "channel_id": "1",
+      "channel_type": "ATDMA",
+      "frequency": "38000000",
+      "width": "6400000",
+      "power": "43.2"
+    },
+    {
+      "channel_id": "2",
+      "channel_type": "ATDMA",
+      "frequency": "44000000",
+      "width": "6400000",
+      "power": "43.1"
+    }
+  ]
+}
+

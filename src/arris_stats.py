@@ -1,6 +1,5 @@
 """
-    Pull stats from Arris Cable modem's web interface
-    Send stats to InfluxDB
+    Pull stats from Arris Cable modem's web interface and send stats to InfluxDB
 
     https://github.com/andrewfraley/arris_cable_modem_stats
 """
@@ -17,19 +16,17 @@ import urllib3
 import requests
 import json
 
-# To add a new modem, add the model below
-# Create a new file src/arris_stats_themodel.py and a parse_html_themodel.py function
-# Use a debugger and set a break point just after the html = get_html(config, credential) line
-# Set another break point just after the  stats = parse_html_function(html) line
-# Save the raw html to tests/mockups/themodel.html
-# Save the stats dict as json to tests/mockups/themodel.json
-# The unittests will automatically pickup the new model, function, and mockups.  Ensure the tests pass with:
-# bash tests/run_tests.sh
-modems_supported = [
-    'sb8200',
-    'sb6183',
-    't25'
-]
+# Import modem implementations and registry
+from src.modem_interface import ModemInterface
+from src.modem_registry import get_modem_instance, get_supported_models
+# Import all modem modules to trigger their registration
+from src.arris_stats_sb6183 import SB6183Modem  # noqa: F401
+from src.arris_stats_sb8200 import SB8200Modem  # noqa: F401
+from src.arris_stats_t25 import T25Modem  # noqa: F401
+from src.arris_stats_s33 import S33Modem  # noqa: F401
+
+# Legacy: modems_supported is now dynamically populated from registry
+modems_supported = get_supported_models()
 
 
 def main():
@@ -48,8 +45,13 @@ def main():
     if not config['modem_verify_ssl']:
         urllib3.disable_warnings()
 
-    # SB8200 requires authentication on Comcast now
-    token = None
+    # Get the modem instance
+    try:
+        modem = get_modem_instance(config['modem_model'])
+    except RuntimeError as error:
+        error_exit(str(error), config, sleep=False)
+
+    # Create a session for the modem to use (handles cookies, etc.)
     session = requests.Session()
 
     first = True
@@ -60,38 +62,36 @@ def main():
             time.sleep(sleep_interval)
         first = False
 
-        if config['modem_auth_required']:
-            while not token:
-                token_func = config['get_token_function'] or get_token
-                token = token_func(config, session)
-                if not token and config['exit_on_auth_error']:
-                    error_exit('Unable to authenticate with modem.  Exiting since exit_on_auth_error is True', config)
-                if not token:
+        # Authenticate if required (some modems require authentication for each poll)
+        if config.get('modem_auth_required', config.get('_auth_required', False)):
+            authenticated = False
+            while not authenticated:
+                authenticated = modem.authenticate(config, session)
+                if not authenticated and config['exit_on_auth_error']:
+                    error_exit('Unable to authenticate with modem. Exiting since exit_on_auth_error is True', config)
+                if not authenticated:
                     logging.info('Unable to obtain valid login session, sleeping for: %ss', sleep_interval)
                     time.sleep(sleep_interval)
 
-        # Get the HTML from the modem
-        html = get_html(config, token, session)
-        if not html:
+        # Get the raw data from the modem
+        raw_data = modem.fetch_data(config, session)
+        if not raw_data:
             if config['exit_on_html_error']:
-                error_exit('No HTML obtained from modem.  Exiting since exit_on_html_error is True', config)
-            logging.error('No HTML to parse, giving up until next interval')
+                error_exit('No data obtained from modem. Exiting since exit_on_html_error is True', config)
+            logging.error('No data to parse, giving up until next interval')
             if config['clear_auth_token_on_html_error']:
-                logging.info('clear_auth_token_on_html_error is true, clearing credential token')
-                token = None
+                logging.info('clear_auth_token_on_html_error is true, creating new session')
                 session = requests.Session()
             continue
 
-        # Get the function reference from the config dict
-        parse_html_function = config['parse_html_function']
-        stats = parse_html_function(html)
+        # Parse the data
+        stats = modem.parse_data(raw_data)
 
         if not stats or (not stats['upstream'] and not stats['downstream']):
-            logging.error(
-                'Failed to get any stats, giving up until next interval')
+            logging.error('Failed to get any stats, giving up until next interval')
             continue
 
-        # Where should 6we send the results?
+        # Where should we send the results?
         if destination == 'influxdb' and config['influx_major_version'] == 1:
             import arris_stats_influx1  # pylint: disable=import-outside-toplevel
             arris_stats_influx1.send_to_influx(stats, config)
@@ -130,11 +130,13 @@ def get_default_config():
         'destination': 'influxdb',
         'sleep_interval': 300,
         'modem_url': 'https://192.168.100.1/cmconnectionstatus.html',
+        'modem_ip': None,  # For S33 modem
         'modem_verify_ssl': False,
         'modem_auth_required': False,
         'modem_username': 'admin',
         'modem_password': None,
         'modem_model': 'sb8200',
+        'request_timeout': 10,  # For S33 and other modems
         'exit_on_auth_error': True,
         'exit_on_html_error': True,
         'clear_auth_token_on_html_error': True,
@@ -198,7 +200,7 @@ def get_config(config_path=None):
             if os.environ.get(param):
                 config[param] = os.environ.get(param)
 
-    # Special handling depending ontype
+    # Special handling depending on type
     for param in config:
 
         # If the default value is a boolean, but we have a string, convert it
@@ -213,18 +215,35 @@ def get_config(config_path=None):
         if default_config[param] is None and config[param] == 'None':
             config[param] = None
 
-        # Ensure model model is supported
-        if config['modem_model'] not in modems_supported:
-            raise RuntimeError('Model model %s not supported!' % config['modem_model'])
+        # Ensure model is supported
+        if config['modem_model'] not in get_supported_models():
+            supported = ', '.join(get_supported_models())
+            raise RuntimeError(
+                f"Modem model '{config['modem_model']}' not supported! "
+                f"Supported models: {supported}"
+            )
 
-    # This gets the correct function to use to parse the modem's html based on model
-    # If you're adding new modems and get an error about no module, create src/arris_stats_yourmodel.py
-    module = __import__('arris_stats_' + config['modem_model'])
-    config['parse_html_function'] = getattr(module, 'parse_html_' + config['modem_model'])
-    try:
-        config['get_token_function'] = getattr(module, 'get_token_' + config['modem_model'])
-    except AttributeError:
-        config['get_token_function'] = None
+    # Handle backward compatibility: S33 modems might use modem_ip instead of modem_url
+    if config['modem_model'] == 's33' and not config.get('modem_ip'):
+        # If modem_url looks like an IP address or contains 'modem_ip' context,
+        # extract the IP from it for S33
+        modem_url = config.get('modem_url', '')
+        if modem_url.startswith('https://'):
+            # Extract IP from URL like 'https://192.168.100.1/...'
+            ip_part = modem_url.replace('https://', '').replace('http://', '').split('/')[0]
+            config['modem_ip'] = ip_part
+            logging.info('Normalized modem_url to modem_ip for S33: %s', ip_part)
+
+    # Determine if authentication is required based on modem model
+    auth_required_models = {'sb8200', 't25', 's33'}
+    if config['modem_model'] in auth_required_models:
+        config['modem_auth_required'] = True
+        config['_auth_required'] = True
+    else:
+        config['_auth_required'] = config.get('modem_auth_required', False)
+
+    logging.debug('Config loaded: %s', {k: v for k, v in config.items() if 'password' not in k.lower() and 'token' not in k.lower()})
+
     return config
 
 
