@@ -55,7 +55,7 @@ RUN pip install --no-cache-dir -r src/requirements.txt
 COPY src/ /app/src/
 
 # If you want to use a config.ini, this overrides all ENV vars
-# CMD ["python3","src/arris_stats.py","--config","src/config.ini"]
+# CMD ["python3","-m","src.arris_stats","--config","src/config.ini"]
 
 # This uses the ENV vars and NOT config.ini
-CMD ["python3","src/arris_stats.py"]
+CMD ["python3","-m","src.arris_stats"]
