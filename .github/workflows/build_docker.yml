@@ -33,4 +33,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/arris_cable_modem_stats:latest
+          tags: ghcr.io/mlittle/arris_cable_modem_stats:latest

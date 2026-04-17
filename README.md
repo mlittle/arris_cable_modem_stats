@@ -11,27 +11,30 @@ I no longer have cable internet, thus cannot develop this project any further.  
 - SB8200
 - SB6183
 - T25
+- S33
 
 ## Authentication
 In late Oct 2020, Comcast deployed firmware updates to the SB8200 which now require authenticating against the modem.  If your modem requires authentication (you get a login page when browsing to https://192.168.100.1/), then you must edit your config.ini file (or set the matching ENV variables) and set ```modem_auth_required``` to ```True```, and set ```modem_password``` appropriately.  By default, your modem's password is the last eight characters of the serial number, located on a sticker on the bottom of the modem.
 
 In October of 2021, Comcast again deployed new firmware that changed how authentication is handled.  The old login method is no longer supported, but if you are with a different carrier and still need the old login functionality, use release v1.2.0.  I have no way to test the old auth scheme, which is why it's no longer supported.
 
+The **S33** modem uses a JSON API with HNAP/HMAC-MD5 authentication.  Set ```modem_model = s33```, ```modem_ip```, ```modem_username```, and ```modem_password``` in your config.
+
 ## InfluxDB 1.x vs 2.x
 This supports both InfluxDB 1.x and InfluxDB 2.x.  See the Config Settings section below for options.  With InfluxDB 1.x, ```influx_host``` is the only required setting if your Influx server does not require authentication.  It will attempt to create the database if it doesn't exist.  For InfluxDB 2.x, change ```influx_major_version``` to ```2```, and also supply your url, org, bucket, and token with write access with the appropriate settings outlined below.
 
 ## Run with Docker
 
-### From DockerHub
-See other environment variables in Config Settings.  This image is automatically rebuilt every month.
+### From GitHub Container Registry
+The image is hosted on the GitHub Container Registry (GHCR) and is automatically rebuilt every month.
 
-    docker pull afraley/arris_cable_modem_stats
+    docker pull ghcr.io/mlittle/arris_cable_modem_stats:latest
     docker run \
     -e modem_auth_required=True \
     -e modem_password='last eight characters of the serial number' \
     -e influx_host='influxhost.local' \
     --restart unless-stopped \
-    afraley/arris_cable_modem_stats
+    ghcr.io/mlittle/arris_cable_modem_stats:latest
 
 ### Build it yourself
 
@@ -83,12 +86,17 @@ Config settings can be provided by the config.ini file, or set as ENV variables.
 - ```sleep_interval = 300```
 - ```modem_url = https://192.168.100.1/cmconnectionstatus.html```
     - url for sb6183 = ```http://192.168.100.1/RgConnect.asp```
+    - not required for s33 (uses ```modem_ip``` directly)
 - ```modem_verify_ssl = False```
 - ```modem_auth_required = False```
 - ```modem_username = admin```
 - ```modem_password = None```
 - ```modem_model = sb8200```
-    - models supported: ```sb6183```, ```sb8200```, ```t25```
+    - models supported: ```sb6183```, ```sb8200```, ```t25```, ```s33```
+- ```modem_ip = None```
+    - IP address of the modem, required for ```s33```; for other models the IP is parsed from ```modem_url```
+- ```request_timeout = 10```
+    - HTTP request timeout in seconds
 - ```exit_on_auth_error = True```
     - Any auth error will cause an exit, useful when running in a Docker container to get a new session
 - ```exit_on_html_error = True```
