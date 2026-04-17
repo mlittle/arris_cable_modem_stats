@@ -48,6 +48,71 @@ Run in a Docker container with the following (see other environment variables in
     --restart unless-stopped \
     arris_stats
 
+### Docker Compose Example
+
+The following compose file includes all available configuration parameters.  Remove or comment out any settings you don't need.
+
+```yaml
+services:
+  arris_cable_modem_stats:
+    image: ghcr.io/mlittle/arris_cable_modem_stats:latest
+    restart: unless-stopped
+    environment:
+      # General
+      log_level: info                   # debug | info | warning | error
+      destination: influxdb             # influxdb | timestream | splunk | stdout_json
+      sleep_interval: 300
+
+      # Modem
+      modem_url: https://192.168.100.1/cmconnectionstatus.html
+      modem_ip: 192.168.100.1           # Required for s33; optional for others
+      modem_verify_ssl: "False"
+      modem_auth_required: "False"
+      modem_username: admin
+      modem_password: ""                # Last 8 chars of serial number by default
+      modem_model: sb8200               # sb6183 | sb8200 | t25 | s33
+      request_timeout: 10
+
+      # Error handling
+      exit_on_auth_error: "True"
+      exit_on_html_error: "True"
+      clear_auth_token_on_html_error: "True"
+      sleep_before_exit: "True"
+
+      # InfluxDB (all versions)
+      influx_major_version: 1           # 1 or 2
+      influx_verify_ssl: "True"
+
+      # InfluxDB 1.x
+      influx_host: localhost
+      influx_port: 8086
+      influx_database: cable_modem_stats
+      influx_username: ""
+      influx_password: ""
+      influx_use_ssl: "False"
+
+      # InfluxDB 2.x
+      influx_org: ""
+      influx_url: http://localhost:8086
+      influx_bucket: cable_modem_stats
+      influx_token: ""
+
+      # AWS Timestream
+      timestream_aws_access_key_id: ""
+      timestream_aws_secret_access_key: ""
+      timestream_database: cable_modem_stats
+      timestream_table: cable_modem_stats
+      timestream_aws_region: us-east-1
+
+      # Splunk
+      splunk_host: ""
+      splunk_port: 8088
+      splunk_token: ""
+      splunk_ssl: "False"
+      splunk_verify_ssl: "True"
+      splunk_source: arris_cable_modem_stats
+```
+
 ## Run Locally
 
 - Install Python 3.8.x or later
