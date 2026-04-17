@@ -47,7 +47,19 @@ ENV log_level=info \
   splunk_port=8088 \
   splunk_ssl=False \
   splunk_verify_ssl=True \
-  splunk_source=arris_cable_modem_stats
+  splunk_source=arris_cable_modem_stats \
+  \
+  # Home Assistant MQTT
+  homeassistant_mqtt_host=localhost \
+  homeassistant_mqtt_port=1883 \
+  homeassistant_mqtt_username=None \
+  homeassistant_mqtt_password=None \
+  homeassistant_mqtt_ssl=False \
+  homeassistant_mqtt_keepalive=60 \
+  homeassistant_discovery_prefix=homeassistant \
+  homeassistant_state_topic_prefix=arris_cable_modem_stats \
+  homeassistant_device_name=Arris_Cable_Modem \
+  homeassistant_device_id=arris_cable_modem
 
 COPY src/requirements.txt /app/src/requirements.txt
 WORKDIR /app

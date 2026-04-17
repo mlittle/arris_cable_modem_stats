@@ -104,6 +104,9 @@ def main():
         elif destination == 'splunk':
             import arris_stats_splunk  # pylint: disable=import-outside-toplevel
             arris_stats_splunk.send_to_splunk(stats, config)
+        elif destination == 'homeassistant':
+            import arris_stats_homeassistant  # pylint: disable=import-outside-toplevel
+            arris_stats_homeassistant.send_to_homeassistant(stats, config)
         elif destination == 'stdout_json':
             print(json.dumps(stats))
         else:
@@ -169,7 +172,19 @@ def get_default_config():
         'splunk_port': 8088,
         'splunk_ssl': False,
         'splunk_verify_ssl': True,
-        'splunk_source': 'arris_cable_modem_stats'
+        'splunk_source': 'arris_cable_modem_stats',
+
+        # Home Assistant MQTT
+        'homeassistant_mqtt_host': 'localhost',
+        'homeassistant_mqtt_port': 1883,
+        'homeassistant_mqtt_username': None,
+        'homeassistant_mqtt_password': None,
+        'homeassistant_mqtt_ssl': False,
+        'homeassistant_mqtt_keepalive': 60,
+        'homeassistant_discovery_prefix': 'homeassistant',
+        'homeassistant_state_topic_prefix': 'arris_cable_modem_stats',
+        'homeassistant_device_name': 'Arris_Cable_Modem',
+        'homeassistant_device_id': 'arris_cable_modem'
     }
 
 

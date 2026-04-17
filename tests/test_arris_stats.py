@@ -4,6 +4,7 @@ import json
 import unittest
 import tempfile
 import src.arris_stats as arris_stats
+import src.arris_stats_homeassistant as arris_stats_homeassistant
 
 # pylint: disable=line-too-long
 
@@ -122,3 +123,23 @@ class TestArrisStats(unittest.TestCase):
                     self.assertIn('power', channel)
 
             self.assertEqual(stats, control_values)
+
+    def test_homeassistant_helpers(self):
+        """Ensure Home Assistant MQTT helper payloads are stable."""
+        config = self.default_config.copy()
+        config['homeassistant_device_id'] = 'test_modem'
+        config['homeassistant_device_name'] = 'Test Modem'
+
+        discovery_topic = arris_stats_homeassistant.get_discovery_topic(config, 'test_sensor')
+        state_topic = arris_stats_homeassistant.get_state_topic(config, 'test_sensor')
+        availability_topic = arris_stats_homeassistant.get_availability_topic(config)
+        device_payload = arris_stats_homeassistant.get_device_payload(config)
+
+        self.assertEqual(discovery_topic, 'homeassistant/sensor/test_modem/test_sensor/config')
+        self.assertEqual(state_topic, 'arris_cable_modem_stats/test_modem/test_sensor/state')
+        self.assertEqual(availability_topic, 'arris_cable_modem_stats/test_modem/availability')
+        self.assertEqual(device_payload['identifiers'], ['test_modem'])
+        self.assertEqual(device_payload['name'], 'Test Modem')
+        self.assertEqual(device_payload['manufacturer'], 'Arris')
+        self.assertEqual(arris_stats_homeassistant.serialize_metric_value('42'), 42)
+        self.assertEqual(arris_stats_homeassistant.serialize_metric_value('42.5'), 42.5)

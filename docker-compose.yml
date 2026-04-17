@@ -8,7 +8,7 @@ services:
       - ./src:/app/src
     environment:
       log_level: info
-      destination: influxdb
+      destination: homeassistant
       sleep_interval: 300
 
       modem_url: https://192.168.100.1/cmconnectionstatus.html

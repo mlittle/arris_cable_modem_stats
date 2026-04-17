@@ -1,6 +1,6 @@
 # arris_cable_modem_stats
 
-This is a Python script to scrape stats from the Arris cable modem web interface.  Results are meant to be sent to InfluxDB for use with Grafana, but also currently supports AWS Timestream and Splunk.  This orginally started as a fork of https://github.com/billimek/SB6183-stats-for-influxdb
+This is a Python script to scrape stats from the Arris cable modem web interface.  Results are meant to be sent to InfluxDB for use with Grafana, but also currently supports AWS Timestream, Splunk, and Home Assistant over MQTT.  This orginally started as a fork of https://github.com/billimek/SB6183-stats-for-influxdb
 
 ## Project EOL
 
@@ -60,7 +60,7 @@ services:
     environment:
       # General
       log_level: info                   # debug | info | warning | error
-      destination: influxdb             # influxdb | timestream | splunk | stdout_json
+    destination: influxdb             # influxdb | timestream | splunk | homeassistant | stdout_json
       sleep_interval: 300
 
       # Modem
@@ -111,6 +111,18 @@ services:
       splunk_ssl: "False"
       splunk_verify_ssl: "True"
       splunk_source: arris_cable_modem_stats
+
+    # Home Assistant MQTT
+    homeassistant_mqtt_host: localhost
+    homeassistant_mqtt_port: 1883
+    homeassistant_mqtt_username: ""
+    homeassistant_mqtt_password: ""
+    homeassistant_mqtt_ssl: "False"
+    homeassistant_mqtt_keepalive: 60
+    homeassistant_discovery_prefix: homeassistant
+    homeassistant_state_topic_prefix: arris_cable_modem_stats
+    homeassistant_device_name: Arris_Cable_Modem
+    homeassistant_device_id: arris_cable_modem
 ```
 
 ## Run Locally
@@ -146,7 +158,8 @@ Config settings can be provided by the config.ini file, or set as ENV variables.
     - Valid options include:
       - ```influxdb``` requires all influx_* params to be populated
       - ```timestream``` requires all timestream_* params to be populated
-      - ```splunk``` requires all splunk_* params to be populated
+    - ```splunk``` requires all splunk_* params to be populated
+    - ```homeassistant``` requires the homeassistant_* MQTT params to be populated
       - ```stdout_json``` will send the data to standard output in JSON format, great with ```log_level=error``` to suppress messages
 - ```sleep_interval = 300```
 - ```modem_url = https://192.168.100.1/cmconnectionstatus.html```
@@ -201,6 +214,17 @@ Config settings can be provided by the config.ini file, or set as ENV variables.
     - ```splunk_ssl = False```
     - ```splunk_verify_ssl = True```
     - ```splunk_source = arris_cable_modem_stats```
+- Home Assistant MQTT Settings
+    - ```homeassistant_mqtt_host = localhost```
+    - ```homeassistant_mqtt_port = 1883```
+    - ```homeassistant_mqtt_username = None```
+    - ```homeassistant_mqtt_password = None```
+    - ```homeassistant_mqtt_ssl = False```
+    - ```homeassistant_mqtt_keepalive = 60```
+    - ```homeassistant_discovery_prefix = homeassistant```
+    - ```homeassistant_state_topic_prefix = arris_cable_modem_stats```
+    - ```homeassistant_device_name = Arris_Cable_Modem```
+    - ```homeassistant_device_id = arris_cable_modem```
 
 
 ### Debugging
@@ -231,6 +255,15 @@ Basic support for sending stats to Splunk is available.  Stats are sent as _json
 - Set the default index to an index of your choosing, ensure the index is added to the Allowed Indexes list.
 - Click Review then Submit, set our splunk_token ENV or config.ini value to the new token value.
 - Update ENV or config.ini values for the splunk_ settings, and set ```destination = splunk```
+
+### Home Assistant
+Basic support for sending stats to Home Assistant is available through MQTT with Home Assistant auto-discovery.  To use it:
+
+- Ensure your Home Assistant instance has MQTT configured and discovery enabled.
+- Point the app at your broker with the homeassistant_mqtt_ settings.
+- Set ```destination = homeassistant```.
+- On first publish, the app will create one modem device and per-channel sensors for downstream and upstream metrics.
+- Discovery topics are retained so entities survive broker restarts, while state topics are published on each polling interval.
 
 ## Grafana
 There are two Grafana examples.  The first only relies on the Python script from this repo, while the second relies on [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/).
