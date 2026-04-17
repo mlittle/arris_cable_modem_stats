@@ -49,13 +49,13 @@ ENV log_level=info \
   splunk_verify_ssl=True \
   splunk_source=arris_cable_modem_stats
 
-COPY src/requirements.txt /src/requirements.txt
-WORKDIR /src
-RUN pip install --no-cache-dir -r requirements.txt
-COPY src/ /src
+COPY src/requirements.txt /app/src/requirements.txt
+WORKDIR /app
+RUN pip install --no-cache-dir -r src/requirements.txt
+COPY src/ /app/src/
 
 # If you want to use a config.ini, this overrides all ENV vars
-# CMD ["python3","arris_stats.py","--config","config.ini"]
+# CMD ["python3","src/arris_stats.py","--config","src/config.ini"]
 
 # This uses the ENV vars and NOT config.ini
-CMD ["python3","arris_stats.py"]
+CMD ["python3","src/arris_stats.py"]
