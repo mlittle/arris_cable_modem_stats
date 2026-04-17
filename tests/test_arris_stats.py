@@ -143,3 +143,9 @@ class TestArrisStats(unittest.TestCase):
         self.assertEqual(device_payload['manufacturer'], 'Arris')
         self.assertEqual(arris_stats_homeassistant.serialize_metric_value('42'), 42)
         self.assertEqual(arris_stats_homeassistant.serialize_metric_value('42.5'), 42.5)
+
+    def test_destination_module_loader(self):
+        """Ensure destination modules resolve when arris_stats is imported as src.arris_stats."""
+        homeassistant_module = arris_stats.load_destination_module('arris_stats_homeassistant')
+
+        self.assertEqual(homeassistant_module.__name__, 'src.arris_stats_homeassistant')

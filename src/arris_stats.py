@@ -15,6 +15,7 @@ import configparser
 import urllib3
 import requests
 import json
+import importlib
 
 # Import modem implementations and registry
 from src.modem_interface import ModemInterface
@@ -27,6 +28,14 @@ from src.arris_stats_s33 import S33Modem  # noqa: F401
 
 # Legacy: modems_supported is now dynamically populated from registry
 modems_supported = get_supported_models()
+
+
+def load_destination_module(module_name):
+    """Load an output module whether running as a package or a script."""
+
+    if __package__:
+        return importlib.import_module(f'{__package__}.{module_name}')
+    return importlib.import_module(module_name)
 
 
 def main():
@@ -93,20 +102,20 @@ def main():
 
         # Where should we send the results?
         if destination == 'influxdb' and config['influx_major_version'] == 1:
-            import arris_stats_influx1  # pylint: disable=import-outside-toplevel
-            arris_stats_influx1.send_to_influx(stats, config)
+            destination_module = load_destination_module('arris_stats_influx1')
+            destination_module.send_to_influx(stats, config)
         elif destination == 'influxdb' and config['influx_major_version'] == 2:
-            import arris_stats_influx2  # pylint: disable=import-outside-toplevel
-            arris_stats_influx2.send_to_influx(stats, config)
+            destination_module = load_destination_module('arris_stats_influx2')
+            destination_module.send_to_influx(stats, config)
         elif destination == 'timestream':
-            import arris_stats_aws_timestream  # pylint: disable=import-outside-toplevel
-            arris_stats_aws_timestream.send_to_aws_time_stream(stats, config)
+            destination_module = load_destination_module('arris_stats_aws_timestream')
+            destination_module.send_to_aws_time_stream(stats, config)
         elif destination == 'splunk':
-            import arris_stats_splunk  # pylint: disable=import-outside-toplevel
-            arris_stats_splunk.send_to_splunk(stats, config)
+            destination_module = load_destination_module('arris_stats_splunk')
+            destination_module.send_to_splunk(stats, config)
         elif destination == 'homeassistant':
-            import arris_stats_homeassistant  # pylint: disable=import-outside-toplevel
-            arris_stats_homeassistant.send_to_homeassistant(stats, config)
+            destination_module = load_destination_module('arris_stats_homeassistant')
+            destination_module.send_to_homeassistant(stats, config)
         elif destination == 'stdout_json':
             print(json.dumps(stats))
         else:
